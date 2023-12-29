@@ -1,30 +1,39 @@
 import json
 from typing import Set
-from bpy.types import Context
 import requests
 import bpy
 
 from .connect_to_spotify import *
 
-accessToken = "foo"
+def getHeader():
+    preferences = bpy.context.preferences
+    addon_prefs = preferences.addons['Playback-Controller'].preferences
 
+    accessToken = addon_prefs.authToken
 
-headers = {
-    "Authorization": f"Bearer {accessToken}"
-}
+    headers = {
+            "Authorization": f"Bearer {accessToken}"
+    }
 
+    return headers
+
+listLimit = 5
 
 
 def getPlaybackData(wm):
-        playbackData = requests.get('https://api.spotify.com/v1/me/player', headers=headers)
+        playbackData = requests.get('https://api.spotify.com/v1/me/player', headers=getHeader())
         playbackJson = playbackData.json()
         
         wm['songName'] = f"{playbackJson['item']['name']} - {playbackJson['item']['artists'][0]['name']}"
         
 def getPlaylistData(wm):
         wm.playlists.clear()
+        params = {
+        'limit': str(listLimit),
+        'offset': '0'
+        }
         playlistData = requests.get(
-            'https://api.spotify.com/v1/me/playlists?limit=5&offset=0', headers=headers)
+            'https://api.spotify.com/v1/me/playlists', headers=getHeader(), params=params)
         playlists = playlistData.json()['items']
         for playlist in playlists:
             container = wm.playlists.add()
@@ -34,11 +43,11 @@ def getPlaylistData(wm):
 def getAlbumData(wm):
     wm.albums.clear()
     params = {
-        'limit': '5',
+        'limit': str(listLimit),
         'offset': '0'
     }
     albumData = requests.get(
-        'https://api.spotify.com/v1/me/albums', headers=headers, params=params
+        'https://api.spotify.com/v1/me/albums', headers=getHeader(), params=params
     )
     items = albumData.json()['items']
     for item in items:
@@ -51,10 +60,10 @@ def getArtistData(wm):
     wm.artists.clear()
     params = {
         'type': 'artist',
-        'limit': '5'
+        'limit': str(listLimit)
     }
     albumData = requests.get(
-        'https://api.spotify.com/v1/me/following', headers=headers, params=params
+        'https://api.spotify.com/v1/me/following', headers=getHeader(), params=params
     )
     
     print(albumData.json())
@@ -91,7 +100,7 @@ class SkipSpotify(bpy.types.Operator):
     bl_context = "VIEW_3D"
 
     def execute(self, context):
-        print(requests.post('https://api.spotify.com/v1/me/player/next', headers=headers).json)
+        print(requests.post('https://api.spotify.com/v1/me/player/next', headers=getHeader()).json)
         bpy.app.timers.register(RefreshBlah, first_interval=0.5)
         RefreshSpotify.execute(None, bpy.context)
         
@@ -104,7 +113,7 @@ class RewindSpotify(bpy.types.Operator):
     bl_context = "VIEW_3D"
 
     def execute(self, context):
-        print(requests.post('https://api.spotify.com/v1/me/player/previous', headers=headers).json)
+        print(requests.post('https://api.spotify.com/v1/me/player/previous', headers=getHeader()).json)
         bpy.app.timers.register(RefreshBlah, first_interval=0.5)
         
         return {'FINISHED'}
@@ -116,7 +125,7 @@ class PauseSpotify(bpy.types.Operator):
     bl_context = "VIEW_3D"
 
     def execute(self, context):
-        print(requests.put('https://api.spotify.com/v1/me/player/pause', headers=headers).json)
+        print(requests.put('https://api.spotify.com/v1/me/player/pause', headers=getHeader()).json)
         bpy.app.timers.register(RefreshBlah, first_interval=0.5)
         
         return {'FINISHED'}
@@ -136,9 +145,9 @@ class PlaySpotify(bpy.types.Operator):
         if (self.uri):
             requests.put(
                 r'https://api.spotify.com/v1/me/player/play', 
-                headers=headers, data=json.dumps(body))
+                headers=getHeader(), data=json.dumps(body))
         else:
-            requests.put(r'https://api.spotify.com/v1/me/player/play', headers=headers)
+            requests.put(r'https://api.spotify.com/v1/me/player/play', headers=getHeader())
         
         bpy.app.timers.register(RefreshBlah, first_interval=0.5)
         

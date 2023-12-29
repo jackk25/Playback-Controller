@@ -15,6 +15,8 @@ if "bpy" in locals():
         importlib.reload(operators)
     if "ui_panels" in locals():
         importlib.reload(ui_panels)
+    if "connect_to_spotify" in locals():
+        importlib.reload(connect_to_spotify)
 
 import bpy
 from .operators import *
@@ -27,8 +29,14 @@ class PromptUser(bpy.types.Operator):
     bl_context = "VIEW_3D"
 
     def execute(self, context):
-        promptUserForAuth("user-modify-playback-state user-read-playback-state playlist-read-private user-library-read user-follow-read")
+        state, codeVerifier = promptUserForAuth("user-modify-playback-state user-read-playback-state playlist-read-private user-library-read user-follow-read")
         
+        preferences = context.preferences
+        addon_prefs = preferences.addons['Playback-Controller'].preferences
+
+        addon_prefs.state = state
+        addon_prefs.codeVerifier = codeVerifier
+
         return {'FINISHED'}
 
 class AuthenticateUser(bpy.types.Operator):
@@ -39,23 +47,26 @@ class AuthenticateUser(bpy.types.Operator):
     @classmethod
     def poll(cls, context):
         preferences = context.preferences
-        addon_prefs = preferences.addons[__name__].preferences
+        addon_prefs = preferences.addons['Playback-Controller'].preferences
 
         return addon_prefs.authUrl != ''
 
     def execute(self, context):
         preferences = context.preferences
-        addon_prefs = preferences.addons[__name__].preferences
+        addon_prefs = preferences.addons['Playback-Controller'].preferences
 
         authToken, refreshToken = authenticateUser(
-            url=addon_prefs.authUrl, state=addon_prefs.state, codeVerifier=addon_prefs.state
+            url=addon_prefs.authUrl, state=addon_prefs.state, codeVerifier=addon_prefs.codeVerifier
         )
 
         addon_prefs.authUrl = ''
         addon_prefs.state = ''
-        addon_prefs.code_verifier = ''
+        addon_prefs.codeVerifier = ''
 
+        addon_prefs.authToken = authToken
         addon_prefs.refreshToken = refreshToken
+
+        RefreshBlah()
         
         return {'FINISHED'}
 
@@ -80,26 +91,32 @@ class AddonPreferences(bpy.types.AddonPreferences):
     authUrl: bpy.props.StringProperty(
         name="Auth URL (DO NOT SHARE!!!!!!!)",
         description="Your url to auth with Spotify servers (DO NOT SHARE THIS, SEND THIS, ETC)",
-        subtype='PASSWORD'
+        maxlen=3000
+    )
+
+    authToken: bpy.props.StringProperty(
+        name="Auth URL (DO NOT SHARE!!!!!!!)",
+        description="Your url to auth with Spotify servers (DO NOT SHARE THIS, SEND THIS, ETC)",
+        maxlen=2000
     )
 
 
     refreshToken: bpy.props.StringProperty(
         name="Refresh Token (DO NOT SHARE!!!!!!!)",
         description="Your token to Spotify servers (DO NOT SHARE THIS, SEND THIS, ETC)",
-        subtype='PASSWORD'
+        maxlen=2000
     )
 
     codeVerifier: bpy.props.StringProperty(
         name="Code Verifier (DO NOT SHARE!!!!!!!)",
         description="Your code verifier for authentication to Spotify servers (DO NOT SHARE THIS, SEND THIS, ETC)",
-        subtype='PASSWORD'
+        maxlen=2000
     )
 
     state: bpy.props.StringProperty(
         name="State (DO NOT SHARE!!!!!!!)",
         description="Your state for authentication (DO NOT SHARE THIS, SEND THIS, ETC)",
-        subtype='PASSWORD'
+        maxlen=2000
     )
 
 
@@ -114,7 +131,6 @@ class AddonPreferences(bpy.types.AddonPreferences):
         
         layout.prop(self, "delay")
         layout.prop(self, "limit")
-        layout.prop(self, "refreshToken")
 
     
 classes = [

@@ -122,7 +122,6 @@ def authenticateUser(url, state, codeVerifier):
         print(f"Error, {query['error']}!")
         return
 
-
     headers = {
         'Content-Type': 'application/x-www-form-urlencoded'
     }
@@ -142,6 +141,7 @@ def authenticateUser(url, state, codeVerifier):
         refreshToken = tokenReq.json()['refresh_token']
     else:
         print(f"Error, status code {tokenReq.status_code}")
+        print(tokenReq.json())
+        return
 
     return accessToken, refreshToken
-    
