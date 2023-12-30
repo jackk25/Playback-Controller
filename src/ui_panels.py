@@ -54,7 +54,7 @@ def drawTrackContainerPanel(self, itemType):
             row = layout.row()
             row.label(text=item.name)
             operator = row.operator(PlaySpotify.bl_idname, icon="PLAY")
-            operator.uri = f"spotify:{item.containerType}:{item.uri}"
+            operator.uri = f"spotify:{item.containerType}:{item.containerId}"
 
             #This shouldn't play a song, this should open a URL to the Spotify page of the thing!
             operator = row.operator('wm.url_open', icon="LINK_BLEND")
