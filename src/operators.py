@@ -32,8 +32,6 @@ def getPlaybackData(wm, count):
     playbackData = requests.get(
         "https://api.spotify.com/v1/me/player", headers=getHeader()
     )
-    playbackJson = playbackData.json()
-
     if playbackData.status_code == 204:
         #Playback has not started yet
         songName = ""
@@ -41,24 +39,24 @@ def getPlaybackData(wm, count):
         shuffleStatus = False
         repeatStatus = "off"
 
-        wm["songName"] = ""
+        wm.songName = ""
 
         return
-    
     elif playbackData.status_code == 401:
         # Don't want to spam the server if it won't work
         # This could be a pref
         if count <= 2:
             refreshAndUpdate()
             getPlaybackData(wm, count)
-    else:
+    elif count > 2:
         return
 
+    playbackJson = playbackData.json()
 
     songName = playbackJson["item"]["name"]
     artistString = ""
     for artist in playbackJson["item"]["artists"]:
-        artistString += f"{artist['name']}, "
+        artistString += f"{artist['name']}"
 
     shuffleStatus = playbackJson["shuffle_state"]
     repeatStatus = playbackJson["repeat_state"]
@@ -73,7 +71,6 @@ def addToTrackContainers(wm, containerJson):
     container.containerId = containerJson["id"]
     container.containerType = containerJson["type"]
     container.href = containerJson["href"]
-
 
 def getPlaylistData(wm, count):
     params = {"limit": str(listLimit), "offset": "0"}
@@ -105,8 +102,8 @@ def getAlbumData(wm, count):
         if count <= 2:
             refreshAndUpdate()
             getAlbumData(wm, count)
-    else:
-        return
+        else:
+            return
 
     items = albumData.json()["items"]
 
@@ -127,8 +124,8 @@ def getArtistData(wm, count):
         if count <= 2:
             refreshAndUpdate()
             getArtistData(wm, count)
-    else:
-        return
+        else:
+            return
 
     arists = artistData.json()["artists"]["items"]
 
@@ -144,22 +141,27 @@ class RefreshSpotify(bpy.types.Operator):
     bl_label = "Refresh"
     bl_context = "VIEW_3D"
 
+    fullRefresh: bpy.props.BoolProperty("fullRefresh", default=False)
+
     def execute(self, context):
         wm = bpy.context.window_manager
-        wm.containers.clear()
-
+        
         # Add threading to me!!!
+
         getPlaybackData(wm, 0)
-        getPlaylistData(wm, 0)
-        getAlbumData(wm, 0)
-        getArtistData(wm, 0)
+
+        if self.fullRefresh == True:
+            wm.containers.clear()
+            print(self.fullRefresh)
+            getPlaylistData(wm, 0)
+            getAlbumData(wm, 0)
+            getArtistData(wm, 0)
 
         return {"FINISHED"}
 
 
-def RefreshBlah():
-    RefreshSpotify.execute(None, bpy.context)
-
+def PartialRefresh():
+    bpy.ops.spotify.RefreshSpotify('EXEC_DEFAULT')
 
 class SkipSpotify(bpy.types.Operator):
     """Skip to the next song"""
@@ -174,8 +176,8 @@ class SkipSpotify(bpy.types.Operator):
                 "https://api.spotify.com/v1/me/player/next", headers=getHeader()
             ).json
         )
-        bpy.app.timers.register(RefreshBlah, first_interval=0.5)
-        RefreshSpotify.execute(None, bpy.context)
+
+        bpy.app.timers.register(PartialRefresh, first_interval=0.5)
 
         return {"FINISHED"}
 
@@ -193,7 +195,7 @@ class RewindSpotify(bpy.types.Operator):
                 "https://api.spotify.com/v1/me/player/previous", headers=getHeader()
             ).json
         )
-        bpy.app.timers.register(RefreshBlah, first_interval=0.5)
+        bpy.app.timers.register(PartialRefresh, first_interval=0.5)
 
         return {"FINISHED"}
 
@@ -211,7 +213,7 @@ class PauseSpotify(bpy.types.Operator):
                 "https://api.spotify.com/v1/me/player/pause", headers=getHeader()
             ).json
         )
-        bpy.app.timers.register(RefreshBlah, first_interval=0.5)
+        bpy.app.timers.register(PartialRefresh, first_interval=0.5)
 
         return {"FINISHED"}
 
@@ -238,6 +240,6 @@ class PlaySpotify(bpy.types.Operator):
                 r"https://api.spotify.com/v1/me/player/play", headers=getHeader()
             )
 
-        bpy.app.timers.register(RefreshBlah, first_interval=0.5)
+        bpy.app.timers.register(PartialRefresh, first_interval=0.5)
 
         return {"FINISHED"}

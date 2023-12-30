@@ -1,5 +1,5 @@
 import bpy
-from bpy.types import Panel, PropertyGroup, Menu
+from bpy.types import Panel, PropertyGroup
 from bpy.props import StringProperty
 
 from .operators import (
@@ -23,19 +23,15 @@ class SPOTIFY_PT_Player(SpotfyPanel, Panel):
         wm = context.window_manager
 
         row = layout.row()
-        row.label(text=wm["songName"])
+        row.label(text=wm.songName)
         row.alignment = "CENTER"
 
-        row = layout.row()
+        row = layout.row(align=True)
         row.operator(RewindSpotify.bl_idname, icon="TRACKING_BACKWARDS_SINGLE")
         row.operator(PauseSpotify.bl_idname, icon="PAUSE")
         row.operator(PlaySpotify.bl_idname, icon="PLAY")
         row.operator(SkipSpotify.bl_idname, icon="TRACKING_FORWARDS_SINGLE")
         row.alignment = "CENTER"
-
-        row = layout.row(align=True)
-        row.operator(RefreshSpotify.bl_idname, icon="FILE_REFRESH")
-
 
 class TrackContainer(PropertyGroup):
     """Contains the name and URI of a 'track container', usually a playlist, album, or artist"""
@@ -82,12 +78,14 @@ class SPOTIFY_PT_Artists(SpotfyPanel, Panel):
     def draw(self, context):
         drawTrackContainerPanel(self, "artist")
 
-
-class AuthenticationMenu(Menu):
-    bl_label = "Authentication Menu"
-    bl_idname = "SPOTIFY_MT_authentication_menu"
+class SPOTIFY_PT_Refresh(SpotfyPanel, Panel):
+    bl_label = "Refresh"
 
     def draw(self, context):
         layout = self.layout
-        row = layout.row()
-        row.label(text="FEED ME URLS")
+
+        operator = layout.operator(RefreshSpotify.bl_idname, text="Player Refresh", icon='FILE_REFRESH')
+        operator.fullRefresh = False
+
+        operator = layout.operator(RefreshSpotify.bl_idname, text="Full Refresh", icon='SORTTIME')
+        operator.fullRefresh = True

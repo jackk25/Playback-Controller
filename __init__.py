@@ -62,7 +62,7 @@ class AuthenticateUser(bpy.types.Operator):
         addon_prefs.authToken = authToken
         addon_prefs.refreshToken = refreshToken
 
-        RefreshBlah()
+        bpy.ops.spotify.RefreshSpotify('EXEC_DEFAULT', fullRefresh=True)
 
         return {"FINISHED"}
 
@@ -120,10 +120,9 @@ class AddonPreferences(bpy.types.AddonPreferences):
         layout = self.layout
 
         if self.refreshToken == "":
-            row = layout.row()
-            row.operator(PromptUser.bl_idname)
-            row.prop(self, "authUrl")
-            row.operator(AuthenticateUser.bl_idname)
+            layout.operator(PromptUser.bl_idname)
+            layout.prop(self, "authUrl")
+            layout.operator(AuthenticateUser.bl_idname)
 
         layout.prop(self, "delay")
         layout.prop(self, "limit")
@@ -132,17 +131,18 @@ class AddonPreferences(bpy.types.AddonPreferences):
 classes = [
     AddonPreferences,
     PromptUser,
-    AuthenticateUser,
     SPOTIFY_PT_Player,
     SPOTIFY_PT_Playlists,
     SPOTIFY_PT_Albums,
     SPOTIFY_PT_Artists,
+    SPOTIFY_PT_Refresh,
     RefreshSpotify,
     SkipSpotify,
     RewindSpotify,
     PauseSpotify,
     TrackContainer,
     PlaySpotify,
+    AuthenticateUser
 ]
 
 def register():
