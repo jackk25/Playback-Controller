@@ -15,7 +15,6 @@ def getHeader():
 
     return headers
 
-
 listLimit = 5
 
 # Add error 401 (Bad or expired token) checking, if this happens, try to refresh the user's token
