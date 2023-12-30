@@ -153,21 +153,13 @@ def register():
     # to simplify adding to the Collection and reduce the amount of total collections
     # That would also remove hard coding the URI from the operators, which is silly and dumb
     bpy.types.WindowManager.songName = bpy.props.StringProperty(name="songName")
-    bpy.types.WindowManager.playlists = bpy.props.CollectionProperty(
-        type=TrackContainer
-    )
-    bpy.types.WindowManager.albums = bpy.props.CollectionProperty(type=TrackContainer)
-    bpy.types.WindowManager.artists = bpy.props.CollectionProperty(type=TrackContainer)
-
+    bpy.types.WindowManager.containers = bpy.props.CollectionProperty(type=TrackContainer)
 
 def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
-    del bpy.types.WindowManager.songName
-    del bpy.types.WindowManager.playlists
-    del bpy.types.WindowManager.albums
-    del bpy.types.WindowManager.artists
+    del bpy.types.WindowManager.containers
 
 
 if __name__ == "__main__":

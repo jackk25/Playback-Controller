@@ -17,14 +17,10 @@ def getHeader():
 
 listLimit = 5
 
-# Add error 401 (Bad or expired token) checking, if this happens, try to refresh the user's token
-
-# Something like this
-
 def refreshAndUpdate():
     preferences = bpy.context.preferences
     addon_prefs = preferences.addons["Playback-Controller"].preferences
-    
+
     refreshToken = addon_prefs.refreshToken
 
     authToken, refreshToken = refreshAuthorization(refreshToken)
@@ -32,27 +28,32 @@ def refreshAndUpdate():
     addon_prefs.authToken = authToken
     addon_prefs.refreshToken = refreshToken
 
-#if playbackData.response_code == 401:
-#    refreshAndUpdate()
-#    *RE-RUN FUNCTION
-
-# This needs to be called on every function that requires headers
-
-def getPlaybackData(wm):
+def getPlaybackData(wm, count):
     playbackData = requests.get(
         "https://api.spotify.com/v1/me/player", headers=getHeader()
     )
     playbackJson = playbackData.json()
 
     if playbackData.status_code == 204:
+        #Playback has not started yet
         songName = ""
         artistString = ""
         shuffleStatus = False
         repeatStatus = "off"
 
-        wm["songName"] = f"{songName} - {artistString}"
+        wm["songName"] = ""
 
         return
+    
+    elif playbackData.status_code == 401:
+        # Don't want to spam the server if it won't work
+        # This could be a pref
+        if count <= 2:
+            refreshAndUpdate()
+            getPlaybackData(wm, count)
+    else:
+        return
+
 
     songName = playbackJson["item"]["name"]
     artistString = ""
@@ -66,53 +67,77 @@ def getPlaybackData(wm):
     wm["songName"] = f"{songName} - {artistString}"
 
 
-def getPlaylistData(wm):
+def addToTrackContainers(wm, containerJson):
+    container = wm.containers.add()
+    container.name = containerJson["name"]
+    container.containerId = containerJson["id"]
+    container.containerType = containerJson["type"]
+    container.href = containerJson["href"]
+
+
+def getPlaylistData(wm, count):
     wm.playlists.clear()
     params = {"limit": str(listLimit), "offset": "0"}
     playlistData = requests.get(
         "https://api.spotify.com/v1/me/playlists", headers=getHeader(), params=params
     )
+
+    if playlistData.status_code == 401:
+        if count <= 2:
+            refreshAndUpdate()
+            getPlaylistData(wm, count)
+        else:
+            return
+
     playlists = playlistData.json()["items"]
 
     # Move this to it's own update function, away from the request and data collection
     for playlist in playlists:
-        container = wm.playlists.add()
-        container.name = playlist["name"]
-        container.uri = f"spotify:playlist:{playlist['id']}"
+        addToTrackContainers(wm, playlist)
 
 
-def getAlbumData(wm):
+def getAlbumData(wm, count):
     wm.albums.clear()
     params = {"limit": str(listLimit), "offset": "0"}
     albumData = requests.get(
         "https://api.spotify.com/v1/me/albums", headers=getHeader(), params=params
     )
+
+    if albumData.status_code == 401:
+        if count <= 2:
+            refreshAndUpdate()
+            getAlbumData(wm, count)
+    else:
+        return
+
     items = albumData.json()["items"]
 
     # Move this to it's own update function, away from the request and data collection
     for item in items:
+        # Why are albums like this :(
         album = item["album"]
-        container = wm.albums.add()
-        container.name = album["name"]
-        container.uri = f"spotify:album:{album['id']}"
+        addToTrackContainers(wm, album)
 
 
-def getArtistData(wm):
+def getArtistData(wm, count):
     wm.artists.clear()
     params = {"type": "artist", "limit": str(listLimit)}
-    albumData = requests.get(
+    artistData = requests.get(
         "https://api.spotify.com/v1/me/following", headers=getHeader(), params=params
     )
+    
+    if artistData.status_code == 401:
+        if count <= 2:
+            refreshAndUpdate()
+            getArtistData(wm, count)
+    else:
+        return
 
-    print(albumData.json())
-
-    items = albumData.json()["artists"]["items"]
+    arists = artistData.json()["artists"]["items"]
 
     # Move this to it's own update function, away from the request and data collection
-    for item in items:
-        container = wm.artists.add()
-        container.name = item["name"]
-        container.uri = f"spotify:artist:{item['id']}"
+    for artist in arists:
+        addToTrackContainers(wm, artist)
 
 
 class RefreshSpotify(bpy.types.Operator):
@@ -124,18 +149,20 @@ class RefreshSpotify(bpy.types.Operator):
 
     def execute(self, context):
         wm = bpy.context.window_manager
+        wm.containers.clear()
 
         # Add threading to me!!!
-        getPlaybackData(wm)
-        getPlaylistData(wm)
-        getAlbumData(wm)
-        getArtistData(wm)
+        getPlaybackData(wm, 0)
+        getPlaylistData(wm, 0)
+        getAlbumData(wm, 0)
+        getArtistData(wm, 0)
 
         return {"FINISHED"}
 
 
 def RefreshBlah():
     RefreshSpotify.execute(None, bpy.context)
+
 
 class SkipSpotify(bpy.types.Operator):
     """Skip to the next song"""

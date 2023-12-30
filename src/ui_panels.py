@@ -1,3 +1,4 @@
+import bpy
 from bpy.types import Panel, PropertyGroup, Menu
 from bpy.props import StringProperty
 
@@ -40,22 +41,24 @@ class TrackContainer(PropertyGroup):
     """Contains the name and URI of a 'track container', usually a playlist, album, or artist"""
 
     name: StringProperty(name="Name")
-    uri: StringProperty(name="ID")
+    containerId: StringProperty(name="ID")
+    # This could be an enum property
+    containerType: StringProperty(name="type")
+    href: StringProperty(name="href")
 
-
-def drawTrackContainerPanel(self, target):
+def drawTrackContainerPanel(self, itemType):
     layout = self.layout
 
-    for item in target:
-        row = layout.row()
-        row.label(text=item.name)
-        operator = row.operator(PlaySpotify.bl_idname, icon="PLAY")
-        operator.uri = item.uri
+    for item in bpy.context.window_manager.containers:
+        if item.containerType == itemType:
+            row = layout.row()
+            row.label(text=item.name)
+            operator = row.operator(PlaySpotify.bl_idname, icon="PLAY")
+            operator.uri = f"spotify:{item.containerType}:{item.uri}"
 
-
-        #This shouldn't play a song, this should open a URL to the Spotify page of the thing!
-        operator = row.operator(PlaySpotify.bl_idname, icon="LINK_BLEND")
-
+            #This shouldn't play a song, this should open a URL to the Spotify page of the thing!
+            operator = row.operator('wm.url_open', icon="LINK_BLEND")
+            operator.url = item.href
 
 # Want to condense these all down even MORE
 # Like with a base class and stuff
@@ -64,20 +67,20 @@ class SPOTIFY_PT_Playlists(SpotfyPanel, Panel):
     bl_label = "Playlists"
 
     def draw(self, context):
-        drawTrackContainerPanel(self, context.window_manager.playlists)
+        drawTrackContainerPanel(self, "playlist")
 
 class SPOTIFY_PT_Albums(SpotfyPanel, Panel):
     bl_label = "Albums"
 
     def draw(self, context):
-        drawTrackContainerPanel(self, context.window_manager.albums)
+        drawTrackContainerPanel(self, "album")
 
 
 class SPOTIFY_PT_Artists(SpotfyPanel, Panel):
     bl_label = "Artists"
 
     def draw(self, context):
-        drawTrackContainerPanel(self, context.window_manager.artists)
+        drawTrackContainerPanel(self, "artist")
 
 
 class AuthenticationMenu(Menu):
