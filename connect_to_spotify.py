@@ -94,7 +94,6 @@ def get_code_challenge(code_verifier: str) -> str:
 CLIENT_ID = "2cd97920621941218d924b9c6ccca02d"
 redirect_uri = "http://localhost:8888"
 
-
 def promptUserForAuth(scopes: str):
     codeVerifier, codeChallenge = generate_pkce_pair()
 
@@ -152,4 +151,27 @@ def authenticateUser(url, state, codeVerifier):
         print(tokenReq.json())
         return
 
+    return accessToken, refreshToken
+
+def refreshAuthorization(refresh_token):
+    headers = {"Content-Type": "application/x-www-form-urlencoded"}
+    
+    body = {
+        "client_id": CLIENT_ID,
+        "grant_type": "refresh_token",
+        "refresh_token": refresh_token,
+    }
+
+    tokenReq = requests.post(
+        "https://accounts.spotify.com/api/token", headers=headers, data=body
+    )
+
+    if tokenReq.status_code == 200:
+        accessToken = tokenReq.json()["access_token"]
+        refreshToken = tokenReq.json()["refresh_token"]
+    else:
+        print(f"Error, status code {tokenReq.status_code}")
+        print(tokenReq.json())
+        return
+    
     return accessToken, refreshToken

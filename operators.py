@@ -1,11 +1,9 @@
 import json
-from typing import Set
 import requests
 import bpy
 import threading
 
 from .connect_to_spotify import *
-
 
 def getHeader():
     preferences = bpy.context.preferences
@@ -20,6 +18,26 @@ def getHeader():
 
 listLimit = 5
 
+# Add error 401 (Bad or expired token) checking, if this happens, try to refresh the user's token
+
+# Something like this
+
+def refreshAndUpdate():
+    preferences = bpy.context.preferences
+    addon_prefs = preferences.addons["Playback-Controller"].preferences
+    
+    refreshToken = addon_prefs.refreshToken
+
+    authToken, refreshToken = refreshAuthorization(refreshToken)
+
+    addon_prefs.authToken = authToken
+    addon_prefs.refreshToken = refreshToken
+
+#if playbackData.response_code == 401:
+#    refreshAndUpdate()
+#    *RE-RUN FUNCTION
+
+# This needs to be called on every function that requires headers
 
 def getPlaybackData(wm):
     playbackData = requests.get(
@@ -27,9 +45,26 @@ def getPlaybackData(wm):
     )
     playbackJson = playbackData.json()
 
-    wm[
-        "songName"
-    ] = f"{playbackJson['item']['name']} - {playbackJson['item']['artists'][0]['name']}"
+    if playbackData.status_code == 204:
+        songName = ""
+        artistString = ""
+        shuffleStatus = False
+        repeatStatus = "off"
+
+        wm["songName"] = f"{songName} - {artistString}"
+
+        return
+
+    songName = playbackJson["item"]["name"]
+    artistString = ""
+    for artist in playbackJson["item"]["artists"]:
+        artistString += f"{artist['name']}, "
+
+    shuffleStatus = playbackJson["shuffle_state"]
+    repeatStatus = playbackJson["repeat_state"]
+
+    # Move this to it's own update function, away from the request and data collection
+    wm["songName"] = f"{songName} - {artistString}"
 
 
 def getPlaylistData(wm):
@@ -39,6 +74,8 @@ def getPlaylistData(wm):
         "https://api.spotify.com/v1/me/playlists", headers=getHeader(), params=params
     )
     playlists = playlistData.json()["items"]
+
+    # Move this to it's own update function, away from the request and data collection
     for playlist in playlists:
         container = wm.playlists.add()
         container.name = playlist["name"]
@@ -52,6 +89,8 @@ def getAlbumData(wm):
         "https://api.spotify.com/v1/me/albums", headers=getHeader(), params=params
     )
     items = albumData.json()["items"]
+
+    # Move this to it's own update function, away from the request and data collection
     for item in items:
         album = item["album"]
         container = wm.albums.add()
@@ -69,6 +108,8 @@ def getArtistData(wm):
     print(albumData.json())
 
     items = albumData.json()["artists"]["items"]
+
+    # Move this to it's own update function, away from the request and data collection
     for item in items:
         container = wm.artists.add()
         container.name = item["name"]
@@ -96,7 +137,6 @@ class RefreshSpotify(bpy.types.Operator):
 
 def RefreshBlah():
     RefreshSpotify.execute(None, bpy.context)
-
 
 class SkipSpotify(bpy.types.Operator):
     """Skip to the next song"""

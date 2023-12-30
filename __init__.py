@@ -157,11 +157,13 @@ classes = [
     PlaySpotify,
 ]
 
-
 def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
+    # Maybe I could modify the TrackContainer to contain the type of container it is,
+    # to simplify adding to the Collection and reduce the amount of total collections
+    # That would also remove hard coding the URI from the operators, which is silly and dumb
     bpy.types.WindowManager.songName = bpy.props.StringProperty(name="songName")
     bpy.types.WindowManager.playlists = bpy.props.CollectionProperty(
         type=TrackContainer

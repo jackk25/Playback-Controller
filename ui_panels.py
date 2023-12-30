@@ -16,12 +16,13 @@ from .operators import (
     SkipSpotify,
 )
 
-
-class SPOTIFY_PT_Player(Panel):
-    bl_label = "Player"
+class SpotfyPanel:
     bl_category = "Spotify"
-    bl_space_type = "VIEW_3D"
+    bl_space_type = 'VIEW_3D'
     bl_region_type = "UI"
+
+class SPOTIFY_PT_Player(SpotfyPanel, Panel):
+    bl_label = "Player"
 
     def draw(self, context):
         layout = self.layout
@@ -58,36 +59,29 @@ def drawTrackContainerPanel(self, target):
         operator = row.operator(PlaySpotify.bl_idname, icon="PLAY")
         operator.uri = item.uri
 
+
+        #This shouldn't play a song, this should open a URL to the Spotify page of the thing!
         operator = row.operator(PlaySpotify.bl_idname, icon="LINK_BLEND")
 
 
 # Want to condense these all down even MORE
 # Like with a base class and stuff
-class SPOTIFY_PT_Playlists(Panel):
+        
+class SPOTIFY_PT_Playlists(SpotfyPanel, Panel):
     bl_label = "Playlists"
-    bl_category = "Spotify"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
 
     def draw(self, context):
         drawTrackContainerPanel(self, context.window_manager.playlists)
 
-
-class SPOTIFY_PT_Albums(Panel):
+class SPOTIFY_PT_Albums(SpotfyPanel, Panel):
     bl_label = "Albums"
-    bl_category = "Spotify"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
 
     def draw(self, context):
         drawTrackContainerPanel(self, context.window_manager.albums)
 
 
-class SPOTIFY_PT_Artists(Panel):
+class SPOTIFY_PT_Artists(SpotfyPanel, Panel):
     bl_label = "Artists"
-    bl_category = "Spotify"
-    bl_space_type = "VIEW_3D"
-    bl_region_type = "UI"
 
     def draw(self, context):
         drawTrackContainerPanel(self, context.window_manager.artists)
