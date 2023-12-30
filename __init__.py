@@ -13,6 +13,7 @@ from .src.operators import *
 from .src.ui_panels import *
 from .src.connect_to_spotify import *
 
+
 # Need to make all of this more secure.
 class PromptUser(bpy.types.Operator):
     bl_idname = "spotify.prompt"
@@ -62,7 +63,7 @@ class AuthenticateUser(bpy.types.Operator):
         addon_prefs.authToken = authToken
         addon_prefs.refreshToken = refreshToken
 
-        bpy.ops.spotify.RefreshSpotify('EXEC_DEFAULT', fullRefresh=True)
+        bpy.ops.spotify.RefreshSpotify("EXEC_DEFAULT", fullRefresh=True)
 
         return {"FINISHED"}
 
@@ -142,8 +143,9 @@ classes = [
     PauseSpotify,
     TrackContainer,
     PlaySpotify,
-    AuthenticateUser
+    AuthenticateUser,
 ]
+
 
 def register():
     for cls in classes:
@@ -153,7 +155,10 @@ def register():
     # to simplify adding to the Collection and reduce the amount of total collections
     # That would also remove hard coding the URI from the operators, which is silly and dumb
     bpy.types.WindowManager.songName = bpy.props.StringProperty(name="songName")
-    bpy.types.WindowManager.containers = bpy.props.CollectionProperty(type=TrackContainer)
+    bpy.types.WindowManager.containers = bpy.props.CollectionProperty(
+        type=TrackContainer
+    )
+
 
 def unregister():
     for cls in classes:

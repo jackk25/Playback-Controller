@@ -5,6 +5,7 @@ import threading
 
 from .connect_to_spotify import *
 
+
 def getHeader():
     preferences = bpy.context.preferences
     addon_prefs = preferences.addons["Playback-Controller"].preferences
@@ -15,7 +16,9 @@ def getHeader():
 
     return headers
 
+
 listLimit = 5
+
 
 def refreshAndUpdate():
     preferences = bpy.context.preferences
@@ -28,12 +31,13 @@ def refreshAndUpdate():
     addon_prefs.authToken = authToken
     addon_prefs.refreshToken = refreshToken
 
+
 def getPlaybackData(wm, count):
     playbackData = requests.get(
         "https://api.spotify.com/v1/me/player", headers=getHeader()
     )
     if playbackData.status_code == 204:
-        #Playback has not started yet
+        # Playback has not started yet
         songName = ""
         artistString = ""
         shuffleStatus = False
@@ -71,6 +75,7 @@ def addToTrackContainers(wm, containerJson):
     container.containerId = containerJson["id"]
     container.containerType = containerJson["type"]
     container.href = containerJson["href"]
+
 
 def getPlaylistData(wm, count):
     params = {"limit": str(listLimit), "offset": "0"}
@@ -119,7 +124,7 @@ def getArtistData(wm, count):
     artistData = requests.get(
         "https://api.spotify.com/v1/me/following", headers=getHeader(), params=params
     )
-    
+
     if artistData.status_code == 401:
         if count <= 2:
             refreshAndUpdate()
@@ -145,7 +150,7 @@ class RefreshSpotify(bpy.types.Operator):
 
     def execute(self, context):
         wm = bpy.context.window_manager
-        
+
         # Add threading to me!!!
 
         getPlaybackData(wm, 0)
@@ -161,7 +166,8 @@ class RefreshSpotify(bpy.types.Operator):
 
 
 def PartialRefresh():
-    bpy.ops.spotify.RefreshSpotify('EXEC_DEFAULT')
+    bpy.ops.spotify.RefreshSpotify("EXEC_DEFAULT")
+
 
 class SkipSpotify(bpy.types.Operator):
     """Skip to the next song"""

@@ -10,10 +10,12 @@ from .operators import (
     SkipSpotify,
 )
 
+
 class SpotfyPanel:
     bl_category = "Spotify"
-    bl_space_type = 'VIEW_3D'
+    bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
+
 
 class SPOTIFY_PT_Player(SpotfyPanel, Panel):
     bl_label = "Player"
@@ -33,6 +35,7 @@ class SPOTIFY_PT_Player(SpotfyPanel, Panel):
         row.operator(SkipSpotify.bl_idname, icon="TRACKING_FORWARDS_SINGLE")
         row.alignment = "CENTER"
 
+
 class TrackContainer(PropertyGroup):
     """Contains the name and URI of a 'track container', usually a playlist, album, or artist"""
 
@@ -41,6 +44,7 @@ class TrackContainer(PropertyGroup):
     # This could be an enum property
     containerType: StringProperty(name="type")
     href: StringProperty(name="href")
+
 
 def drawTrackContainerPanel(self, itemType):
     layout = self.layout
@@ -52,18 +56,21 @@ def drawTrackContainerPanel(self, itemType):
             operator = row.operator(PlaySpotify.bl_idname, icon="PLAY")
             operator.uri = f"spotify:{item.containerType}:{item.containerId}"
 
-            #This shouldn't play a song, this should open a URL to the Spotify page of the thing!
-            operator = row.operator('wm.url_open', icon="LINK_BLEND")
+            # This shouldn't play a song, this should open a URL to the Spotify page of the thing!
+            operator = row.operator("wm.url_open", icon="LINK_BLEND")
             operator.url = item.href
+
 
 # Want to condense these all down even MORE
 # Like with a base class and stuff
-        
+
+
 class SPOTIFY_PT_Playlists(SpotfyPanel, Panel):
     bl_label = "Playlists"
 
     def draw(self, context):
         drawTrackContainerPanel(self, "playlist")
+
 
 class SPOTIFY_PT_Albums(SpotfyPanel, Panel):
     bl_label = "Albums"
@@ -78,14 +85,19 @@ class SPOTIFY_PT_Artists(SpotfyPanel, Panel):
     def draw(self, context):
         drawTrackContainerPanel(self, "artist")
 
+
 class SPOTIFY_PT_Refresh(SpotfyPanel, Panel):
     bl_label = "Refresh"
 
     def draw(self, context):
         layout = self.layout
 
-        operator = layout.operator(RefreshSpotify.bl_idname, text="Player Refresh", icon='FILE_REFRESH')
+        operator = layout.operator(
+            RefreshSpotify.bl_idname, text="Player Refresh", icon="FILE_REFRESH"
+        )
         operator.fullRefresh = False
 
-        operator = layout.operator(RefreshSpotify.bl_idname, text="Full Refresh", icon='SORTTIME')
+        operator = layout.operator(
+            RefreshSpotify.bl_idname, text="Full Refresh", icon="SORTTIME"
+        )
         operator.fullRefresh = True
