@@ -96,7 +96,6 @@ def getPlaylistData(wm, count):
 
 
 def getAlbumData(wm, count):
-    wm.albums.clear()
     params = {"limit": str(listLimit), "offset": "0"}
     albumData = requests.get(
         "https://api.spotify.com/v1/me/albums", headers=getHeader(), params=params
@@ -119,7 +118,6 @@ def getAlbumData(wm, count):
 
 
 def getArtistData(wm, count):
-    wm.artists.clear()
     params = {"type": "artist", "limit": str(listLimit)}
     artistData = requests.get(
         "https://api.spotify.com/v1/me/following", headers=getHeader(), params=params
