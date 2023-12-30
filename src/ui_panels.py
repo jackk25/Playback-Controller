@@ -1,11 +1,3 @@
-import operators
-
-if "bpy" in locals():
-    import importlib
-
-    if "operators" in locals():
-        importlib.reload(operators)
-
 from bpy.types import Panel, PropertyGroup, Menu
 from bpy.props import StringProperty
 

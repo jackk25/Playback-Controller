@@ -8,22 +8,10 @@ bl_info = {
     "description": "Control Spotify playback from inside Blender.",
 }
 
-# Allows reloading through F8, "Reload Script", etc. without breaking
-if "bpy" in locals():
-    import importlib
-
-    if "operators" in locals():
-        importlib.reload(operators)
-    if "ui_panels" in locals():
-        importlib.reload(ui_panels)
-    if "connect_to_spotify" in locals():
-        importlib.reload(connect_to_spotify)
-
 import bpy
-from .operators import *
-from .ui_panels import *
-from .connect_to_spotify import *
-
+from .src.operators import *
+from .src.ui_panels import *
+from .src.connect_to_spotify import *
 
 # Need to make all of this more secure.
 class PromptUser(bpy.types.Operator):
