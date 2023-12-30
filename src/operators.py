@@ -76,7 +76,6 @@ def addToTrackContainers(wm, containerJson):
 
 
 def getPlaylistData(wm, count):
-    wm.playlists.clear()
     params = {"limit": str(listLimit), "offset": "0"}
     playlistData = requests.get(
         "https://api.spotify.com/v1/me/playlists", headers=getHeader(), params=params
