@@ -33,9 +33,10 @@ Compatibility cannot be 100% ensured, so if you encounter an issue related to Bl
 * Click on the check box next to the text
 * Follow the steps listed within the addon to complete installation
 
+## FAQ  
+* **I don't have Spotify Premium, will this add-on work for me?**  
+The player panel will still display your currently playing song, but unfortunately, any user interaction (playing, pausing, etc.) will not work. This is a limitation of the Spotify API, and I wish it wasn't this way. Sorry!
+
 ## Credits
 Romeo Despres - PKCE Authentication code  
 https://github.com/RomeoDespres/pkce/  
-
-Machin3io - Blender Addon Preferences Access  
-https://github.com/machin3io

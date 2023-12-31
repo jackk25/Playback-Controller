@@ -8,6 +8,8 @@ from .operators import (
     PauseSpotify,
     PlaySpotify,
     SkipSpotify,
+    ShuffleSpotify,
+    LoopSpotify,
 )
 
 
@@ -29,10 +31,12 @@ class SPOTIFY_PT_Player(SpotfyPanel, Panel):
         row.alignment = "CENTER"
 
         row = layout.row(align=True)
-        row.operator(RewindSpotify.bl_idname, icon="TRACKING_BACKWARDS_SINGLE")
+        row.operator(ShuffleSpotify.bl_idname, icon="DECORATE_DRIVER")
+        row.operator(RewindSpotify.bl_idname, icon="REW")
         row.operator(PauseSpotify.bl_idname, icon="PAUSE")
         row.operator(PlaySpotify.bl_idname, icon="PLAY")
-        row.operator(SkipSpotify.bl_idname, icon="TRACKING_FORWARDS_SINGLE")
+        row.operator(SkipSpotify.bl_idname, icon="FF")
+        row.operator(LoopSpotify.bl_idname, icon="RECOVER_LAST")
         row.alignment = "CENTER"
 
 

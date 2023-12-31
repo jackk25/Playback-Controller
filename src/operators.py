@@ -175,41 +175,37 @@ class RefreshSpotify(bpy.types.Operator):
 
         fullStartTime = time.time()
         results = {}
+        with ThreadPoolExecutor() as executor:
+            playbackFuture = executor.submit(getPlaybackData, 0, results)
 
-        with requests.session() as Session:
-            with ThreadPoolExecutor() as executor:
-                Session.headers = getHeader()
+            if self.fullRefresh == True:
+                containerQueue = queue.Queue(maxsize=0)
+                wm.containers.clear()
 
-                playbackFuture = executor.submit(getPlaybackData, 0, results)
+                playlistFuture = executor.submit(getPlaylistData, 0, containerQueue)
+                albumFuture = executor.submit(getAlbumData, 0, containerQueue)
+                artistFuture = executor.submit(getArtistData, 0, containerQueue)
 
-                if self.fullRefresh == True:
-                    containerQueue = queue.Queue(maxsize=0)
-                    wm.containers.clear()
+                playlistFuture.result()
+                albumFuture.result()
+                artistFuture.result()
 
-                    playlistFuture = executor.submit(getPlaylistData, 0, containerQueue)
-                    albumFuture = executor.submit(getAlbumData, 0, containerQueue)
-                    artistFuture = executor.submit(getArtistData, 0, containerQueue)
+                containerQueue.put(None)
 
-                    playbackFuture.result()
-                    albumFuture.result()
-                    artistFuture.result()
+                uiTime = time.time()
 
-                    containerQueue.put(None)
-
-                    uiTime = time.time()
-
-                    for container in iter(containerQueue.get, None):
-                        addToTrackContainers(wm, container)
-
-                    endTime = time.time()
-                    print(f"Time to update UI: {endTime-uiTime}")
+                for container in iter(containerQueue.get, None):
+                    addToTrackContainers(wm, container)
 
                 endTime = time.time()
-                playbackFuture.result()
-                songName = results["songName"]
-                artistString = results["artistString"]
-                wm.songName = f"{songName} - {artistString}"
-                print(f"Full execution time: {endTime-fullStartTime}")
+                print(f"Time to update UI: {endTime-uiTime}")
+
+            endTime = time.time()
+            playbackFuture.result()
+            songName = results["songName"]
+            artistString = results["artistString"]
+            wm.songName = f"{songName} - {artistString}"
+            print(f"Full execution time: {endTime-fullStartTime}")
 
         return {"FINISHED"}
 
@@ -276,7 +272,7 @@ class PauseSpotify(bpy.types.Operator):
 class PlaySpotify(bpy.types.Operator):
     """Play the song / playlist"""
 
-    bl_idname = "spotify.playplaylist"
+    bl_idname = "spotify.play_playlist"
     bl_label = ""
     bl_context = "VIEW_3D"
 
@@ -297,4 +293,26 @@ class PlaySpotify(bpy.types.Operator):
 
         bpy.app.timers.register(PartialRefresh, first_interval=0.5)
 
+        return {"FINISHED"}
+
+
+class ShuffleSpotify(bpy.types.Operator):
+    """Toggle the shuffle on / off"""
+
+    bl_idname = "spotify.shuffle"
+    bl_label = ""
+    bl_context = "VIEW_3D"
+
+    def execute(self, context):
+        return {"FINISHED"}
+
+
+class LoopSpotify(bpy.types.Operator):
+    """Change the loop mode"""
+
+    bl_idname = "spotify.change_loop"
+    bl_label = ""
+    bl_context = "VIEW_3D"
+
+    def execute(self, context):
         return {"FINISHED"}
