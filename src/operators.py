@@ -1,20 +1,25 @@
 import json
 import requests
 import bpy
-import threading
 import queue
+import time
+from concurrent.futures import ThreadPoolExecutor
 
 from .connect_to_spotify import *
-from .utils import get_prefs
 
 
 def getHeader():
-    addon_prefs = get_prefs()
+    preferences = bpy.context.preferences
+    addon_prefs = preferences.addons["Playback-Controller"].preferences
+
     accessToken = addon_prefs.authToken
 
     headers = {"Authorization": f"Bearer {accessToken}"}
 
     return headers
+
+
+listLimit = 5
 
 
 def refreshAndUpdate():
@@ -29,7 +34,7 @@ def refreshAndUpdate():
     addon_prefs.refreshToken = refreshToken
 
 
-def getPlaybackData(wm, count):
+def getPlaybackData(count, resultsDict):
     playbackData = requests.get(
         "https://api.spotify.com/v1/me/player", headers=getHeader()
     )
@@ -40,15 +45,18 @@ def getPlaybackData(wm, count):
         shuffleStatus = False
         repeatStatus = "off"
 
-        wm.songName = ""
-
+        resultsDict['songName'] = songName
+        resultsDict['artistString'] = artistString
+        resultsDict['shuffleStatus'] = shuffleStatus
+        resultsDict['repeatStatus'] = repeatStatus
         return
+
     elif playbackData.status_code == 401:
         # Don't want to spam the server if it won't work
         # This could be a pref
         if count <= 2:
-            refreshAndUpdate()
-            getPlaybackData(wm, count)
+            refreshAndUpdate(count, resultsDict)
+            getPlaybackData(count + 1)
     elif count > 2:
         return
 
@@ -62,8 +70,12 @@ def getPlaybackData(wm, count):
     shuffleStatus = playbackJson["shuffle_state"]
     repeatStatus = playbackJson["repeat_state"]
 
-    # Move this to it's own update function, away from the request and data collection
-    wm["songName"] = f"{songName} - {artistString}"
+    resultsDict['songName'] = songName
+    resultsDict['artistString'] = artistString
+    resultsDict['shuffleStatus'] = shuffleStatus
+    resultsDict['repeatStatus'] = repeatStatus
+
+    print(resultsDict)
 
 
 def addToTrackContainers(wm, containerJson):
@@ -75,7 +87,9 @@ def addToTrackContainers(wm, containerJson):
 
 
 def getPlaylistData(count: int, queue: queue.Queue):
-    params = {"limit": str(get_prefs().limit), "offset": "0"}
+    startTime = time.time()
+    print("Getting Playlist Data")
+    params = {"limit": str(listLimit), "offset": "0"}
     playlistData = requests.get(
         "https://api.spotify.com/v1/me/playlists", headers=getHeader(), params=params
     )
@@ -83,7 +97,7 @@ def getPlaylistData(count: int, queue: queue.Queue):
     if playlistData.status_code == 401:
         if count <= 2:
             refreshAndUpdate()
-            getPlaylistData(count, queue)
+            getPlaylistData(count + 1, queue)
         else:
             return
 
@@ -92,9 +106,14 @@ def getPlaylistData(count: int, queue: queue.Queue):
     for playlist in playlists:
         queue.put(playlist)
 
+    endTime = time.time()
+    print(f"Playlist Data Time: {endTime - startTime}")
+
 
 def getAlbumData(count: int, queue: queue.Queue):
-    params = {"limit": str(get_prefs().limit), "offset": "0"}
+    startTime = time.time()
+    print("Getting Album Data")
+    params = {"limit": str(listLimit), "offset": "0"}
     albumData = requests.get(
         "https://api.spotify.com/v1/me/albums", headers=getHeader(), params=params
     )
@@ -102,7 +121,7 @@ def getAlbumData(count: int, queue: queue.Queue):
     if albumData.status_code == 401:
         if count <= 2:
             refreshAndUpdate()
-            getAlbumData(count, queue)
+            getAlbumData(count + 1, queue)
         else:
             return
 
@@ -113,9 +132,14 @@ def getAlbumData(count: int, queue: queue.Queue):
         album = item["album"]
         queue.put(album)
 
+    endTime = time.time()
+    print(f"Album Data Time: {endTime - startTime}")
+
 
 def getArtistData(count: int, queue: queue.Queue):
-    params = {"type": "artist", "limit": str(get_prefs().limit)}
+    startTime = time.time()
+    print("Getting Artist Data")
+    params = {"type": "artist", "limit": str(listLimit)}
     artistData = requests.get(
         "https://api.spotify.com/v1/me/following", headers=getHeader(), params=params
     )
@@ -123,7 +147,7 @@ def getArtistData(count: int, queue: queue.Queue):
     if artistData.status_code == 401:
         if count <= 2:
             refreshAndUpdate()
-            getArtistData(count, queue)
+            getArtistData(count + 1, queue)
         else:
             return
 
@@ -131,6 +155,10 @@ def getArtistData(count: int, queue: queue.Queue):
 
     for artist in arists:
         queue.put(artist)
+
+    endTime = time.time()
+
+    print(f"Artist Data Time: {endTime-startTime}")
 
 
 class RefreshSpotify(bpy.types.Operator):
@@ -145,19 +173,52 @@ class RefreshSpotify(bpy.types.Operator):
     def execute(self, context):
         wm = bpy.context.window_manager
 
-        # Add threading to me!!!
+        fullStartTime = time.time()
+        results = {}
 
-        getPlaybackData(wm, 0)
+        with requests.session() as Session:
+            with ThreadPoolExecutor() as executor:
 
-        if self.fullRefresh == True:
-            containerQueue = queue.Queue(maxsize=0)
-            wm.containers.clear()
-            getPlaylistData(0, containerQueue)
-            getAlbumData(0, containerQueue)
-            getArtistData(0, containerQueue)
+                Session.headers = getHeader()
 
-            for container in iter(containerQueue.get, None):
-                addToTrackContainers(wm, container)
+                playbackFuture = executor.submit(
+                    getPlaybackData, 0, results
+                )
+
+                if self.fullRefresh == True:
+                    containerQueue = queue.Queue(maxsize=0)
+                    wm.containers.clear()
+
+                    playlistFuture = executor.submit(
+                        getPlaylistData, 0, containerQueue
+                    )
+                    albumFuture = executor.submit(
+                        getAlbumData, 0, containerQueue
+                    )
+                    artistFuture = executor.submit(
+                        getArtistData, 0, containerQueue
+                    )
+
+                    playbackFuture.result()
+                    albumFuture.result()
+                    artistFuture.result()
+
+                    containerQueue.put(None)
+
+                    uiTime = time.time()
+
+                    for container in iter(containerQueue.get, None):
+                        addToTrackContainers(wm, container)
+
+                    endTime = time.time()
+                    print(f"Time to update UI: {endTime-uiTime}")
+
+                endTime = time.time()
+                playbackFuture.result()
+                songName = results['songName']
+                artistString = results["artistString"]
+                wm.songName = f"{songName} - {artistString}"
+                print(f"Full execution time: {endTime-fullStartTime}")
 
         return {"FINISHED"}
 
