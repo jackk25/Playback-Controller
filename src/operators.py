@@ -2,22 +2,19 @@ import json
 import requests
 import bpy
 import threading
+import queue
 
 from .connect_to_spotify import *
+from .utils import get_prefs
 
 
 def getHeader():
-    preferences = bpy.context.preferences
-    addon_prefs = preferences.addons["Playback-Controller"].preferences
-
+    addon_prefs = get_prefs()
     accessToken = addon_prefs.authToken
 
     headers = {"Authorization": f"Bearer {accessToken}"}
 
     return headers
-
-
-listLimit = 5
 
 
 def refreshAndUpdate():
@@ -77,8 +74,8 @@ def addToTrackContainers(wm, containerJson):
     container.href = containerJson["href"]
 
 
-def getPlaylistData(wm, count):
-    params = {"limit": str(listLimit), "offset": "0"}
+def getPlaylistData(count: int, queue: queue.Queue):
+    params = {"limit": str(get_prefs().limit), "offset": "0"}
     playlistData = requests.get(
         "https://api.spotify.com/v1/me/playlists", headers=getHeader(), params=params
     )
@@ -86,19 +83,18 @@ def getPlaylistData(wm, count):
     if playlistData.status_code == 401:
         if count <= 2:
             refreshAndUpdate()
-            getPlaylistData(wm, count)
+            getPlaylistData(count, queue)
         else:
             return
 
     playlists = playlistData.json()["items"]
 
-    # Move this to it's own update function, away from the request and data collection
     for playlist in playlists:
-        addToTrackContainers(wm, playlist)
+        queue.put(playlist)
 
 
-def getAlbumData(wm, count):
-    params = {"limit": str(listLimit), "offset": "0"}
+def getAlbumData(count: int, queue: queue.Queue):
+    params = {"limit": str(get_prefs().limit), "offset": "0"}
     albumData = requests.get(
         "https://api.spotify.com/v1/me/albums", headers=getHeader(), params=params
     )
@@ -106,21 +102,20 @@ def getAlbumData(wm, count):
     if albumData.status_code == 401:
         if count <= 2:
             refreshAndUpdate()
-            getAlbumData(wm, count)
+            getAlbumData(count, queue)
         else:
             return
 
     items = albumData.json()["items"]
 
-    # Move this to it's own update function, away from the request and data collection
     for item in items:
         # Why are albums like this :(
         album = item["album"]
-        addToTrackContainers(wm, album)
+        queue.put(album)
 
 
-def getArtistData(wm, count):
-    params = {"type": "artist", "limit": str(listLimit)}
+def getArtistData(count: int, queue: queue.Queue):
+    params = {"type": "artist", "limit": str(get_prefs().limit)}
     artistData = requests.get(
         "https://api.spotify.com/v1/me/following", headers=getHeader(), params=params
     )
@@ -128,15 +123,14 @@ def getArtistData(wm, count):
     if artistData.status_code == 401:
         if count <= 2:
             refreshAndUpdate()
-            getArtistData(wm, count)
+            getArtistData(count, queue)
         else:
             return
 
     arists = artistData.json()["artists"]["items"]
 
-    # Move this to it's own update function, away from the request and data collection
     for artist in arists:
-        addToTrackContainers(wm, artist)
+        queue.put(artist)
 
 
 class RefreshSpotify(bpy.types.Operator):
@@ -156,17 +150,20 @@ class RefreshSpotify(bpy.types.Operator):
         getPlaybackData(wm, 0)
 
         if self.fullRefresh == True:
+            containerQueue = queue.Queue(maxsize=0)
             wm.containers.clear()
-            print(self.fullRefresh)
-            getPlaylistData(wm, 0)
-            getAlbumData(wm, 0)
-            getArtistData(wm, 0)
+            getPlaylistData(0, containerQueue)
+            getAlbumData(0, containerQueue)
+            getArtistData(0, containerQueue)
+
+            for container in iter(containerQueue.get, None):
+                addToTrackContainers(wm, container)
 
         return {"FINISHED"}
 
 
 def PartialRefresh():
-    bpy.ops.spotify.RefreshSpotify("EXEC_DEFAULT")
+    bpy.ops.spotify.refresh("EXEC_DEFAULT")
 
 
 class SkipSpotify(bpy.types.Operator):

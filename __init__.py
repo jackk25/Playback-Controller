@@ -63,7 +63,7 @@ class AuthenticateUser(bpy.types.Operator):
         addon_prefs.authToken = authToken
         addon_prefs.refreshToken = refreshToken
 
-        bpy.ops.spotify.RefreshSpotify("EXEC_DEFAULT", fullRefresh=True)
+        bpy.ops.spotify.refresh("EXEC_DEFAULT")
 
         return {"FINISHED"}
 
@@ -87,13 +87,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     authToken: bpy.props.StringProperty(
         name="Auth URL (DO NOT SHARE!!!!!!!)",
-        description="Your url to auth with Spotify servers (DO NOT SHARE THIS, SEND THIS, ETC)",
         maxlen=2000,
     )
 
     refreshToken: bpy.props.StringProperty(
         name="Refresh Token (DO NOT SHARE!!!!!!!)",
-        description="Your token to Spotify servers (DO NOT SHARE THIS, SEND THIS, ETC)",
         maxlen=2000,
     )
 
@@ -107,13 +105,11 @@ class AddonPreferences(bpy.types.AddonPreferences):
 
     codeVerifier: bpy.props.StringProperty(
         name="Code Verifier (DO NOT SHARE!!!!!!!)",
-        description="Your code verifier for authentication to Spotify servers (DO NOT SHARE THIS, SEND THIS, ETC)",
         maxlen=2000,
     )
 
     state: bpy.props.StringProperty(
         name="State (DO NOT SHARE!!!!!!!)",
-        description="Your state for authentication (DO NOT SHARE THIS, SEND THIS, ETC)",
         maxlen=2000,
     )
 
