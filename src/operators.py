@@ -45,10 +45,10 @@ def getPlaybackData(count, resultsDict):
         shuffleStatus = False
         repeatStatus = "off"
 
-        resultsDict['songName'] = songName
-        resultsDict['artistString'] = artistString
-        resultsDict['shuffleStatus'] = shuffleStatus
-        resultsDict['repeatStatus'] = repeatStatus
+        resultsDict["songName"] = songName
+        resultsDict["artistString"] = artistString
+        resultsDict["shuffleStatus"] = shuffleStatus
+        resultsDict["repeatStatus"] = repeatStatus
         return
 
     elif playbackData.status_code == 401:
@@ -70,10 +70,10 @@ def getPlaybackData(count, resultsDict):
     shuffleStatus = playbackJson["shuffle_state"]
     repeatStatus = playbackJson["repeat_state"]
 
-    resultsDict['songName'] = songName
-    resultsDict['artistString'] = artistString
-    resultsDict['shuffleStatus'] = shuffleStatus
-    resultsDict['repeatStatus'] = repeatStatus
+    resultsDict["songName"] = songName
+    resultsDict["artistString"] = artistString
+    resultsDict["shuffleStatus"] = shuffleStatus
+    resultsDict["repeatStatus"] = repeatStatus
 
     print(resultsDict)
 
@@ -178,26 +178,17 @@ class RefreshSpotify(bpy.types.Operator):
 
         with requests.session() as Session:
             with ThreadPoolExecutor() as executor:
-
                 Session.headers = getHeader()
 
-                playbackFuture = executor.submit(
-                    getPlaybackData, 0, results
-                )
+                playbackFuture = executor.submit(getPlaybackData, 0, results)
 
                 if self.fullRefresh == True:
                     containerQueue = queue.Queue(maxsize=0)
                     wm.containers.clear()
 
-                    playlistFuture = executor.submit(
-                        getPlaylistData, 0, containerQueue
-                    )
-                    albumFuture = executor.submit(
-                        getAlbumData, 0, containerQueue
-                    )
-                    artistFuture = executor.submit(
-                        getArtistData, 0, containerQueue
-                    )
+                    playlistFuture = executor.submit(getPlaylistData, 0, containerQueue)
+                    albumFuture = executor.submit(getAlbumData, 0, containerQueue)
+                    artistFuture = executor.submit(getArtistData, 0, containerQueue)
 
                     playbackFuture.result()
                     albumFuture.result()
@@ -215,7 +206,7 @@ class RefreshSpotify(bpy.types.Operator):
 
                 endTime = time.time()
                 playbackFuture.result()
-                songName = results['songName']
+                songName = results["songName"]
                 artistString = results["artistString"]
                 wm.songName = f"{songName} - {artistString}"
                 print(f"Full execution time: {endTime-fullStartTime}")
