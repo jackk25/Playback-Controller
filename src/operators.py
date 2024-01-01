@@ -161,6 +161,9 @@ def getArtistData(count: int, queue: queue.Queue):
     print(f"Artist Data Time: {endTime-startTime}")
 
 
+# Lets make these modals
+
+
 class RefreshSpotify(bpy.types.Operator):
     """Refresh Spotify playback info"""
 
@@ -202,9 +205,14 @@ class RefreshSpotify(bpy.types.Operator):
 
             endTime = time.time()
             playbackFuture.result()
+
             songName = results["songName"]
             artistString = results["artistString"]
+            shuffleStatus = results["shuffleStatus"]
+
             wm.songName = f"{songName} - {artistString}"
+            wm.shuffleState = shuffleStatus
+
             print(f"Full execution time: {endTime-fullStartTime}")
 
         return {"FINISHED"}
@@ -304,6 +312,16 @@ class ShuffleSpotify(bpy.types.Operator):
     bl_context = "VIEW_3D"
 
     def execute(self, context):
+        wm = bpy.context.window_manager
+
+        body = {"state": str(not wm.shuffleState).lower()}
+
+        requests.put(
+            r"https://api.spotify.com/v1/me/player/shuffle",
+            headers=getHeader(),
+            data=json.dumps(body),
+        )
+
         return {"FINISHED"}
 
 
@@ -315,4 +333,13 @@ class LoopSpotify(bpy.types.Operator):
     bl_context = "VIEW_3D"
 
     def execute(self, context):
+        # Options are track, context, and off
+        body = {"state": "track"}
+
+        requests.put(
+            r"https://api.spotify.com/v1/me/player/repeat",
+            headers=getHeader(),
+            data=json.dumps(body),
+        )
+
         return {"FINISHED"}

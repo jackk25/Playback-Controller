@@ -149,7 +149,9 @@ def register():
     for cls in classes:
         bpy.utils.register_class(cls)
 
+    # I could make a container class to hold all playback data from one request
     bpy.types.WindowManager.songName = bpy.props.StringProperty(name="songName")
+    bpy.types.WindowManager.shuffleState = bpy.props.BoolProperty(name="shuffleState")
     bpy.types.WindowManager.containers = bpy.props.CollectionProperty(
         type=TrackContainer
     )
@@ -159,7 +161,9 @@ def unregister():
     for cls in classes:
         bpy.utils.unregister_class(cls)
 
+    del bpy.types.WindowManager.songName
     del bpy.types.WindowManager.containers
+    del bpy.types.WindowManager.shuffleState
 
 
 if __name__ == "__main__":
